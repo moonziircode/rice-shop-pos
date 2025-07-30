@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rice Shop POS Admin</title>
+    <meta name="description" content="Rice Shop POS Admin - Modern point of sale administration interface">
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/utilities.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="login-page" class="page hidden">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <i data-lucide="coffee" class="login-icon"></i>
+                    <h1>Rice Shop POS</h1>
+                    <p>Admin Dashboard</p>
+                </div>
+                
+                <form id="login-form" class="login-form">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="Enter your email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required 
+                               placeholder="Enter your password">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i data-lucide="log-in"></i>
+                        Sign In
+                    </button>
+                    
+                    <div id="login-error" class="error-message hidden"></div>
+                </form>
+                
+                <div class="demo-credentials">
+                    <p><strong>Demo Credentials:</strong></p>
+                    <div class="demo-account">
+                        <p><strong>Admin:</strong> admin@riceshop.com / admin123</p>
+                        <p><strong>Manager:</strong> manager@riceshop.com / manager123</p>
+                        <p><strong>Cashier:</strong> cashier1@riceshop.com / cashier123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="main-app hidden">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i data-lucide="coffee" class="sidebar-logo-icon"></i>
+                    <span class="sidebar-logo-text">Rice Shop POS</span>
+                </div>
+                <button id="sidebar-toggle" class="sidebar-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="products">
+                    <i data-lucide="coffee"></i>
+                    <span>Products</span>
+                </a>
+                <a href="#" class="nav-item" data-page="transactions">
+                    <i data-lucide="shopping-cart"></i>
+                    <span>Transactions</span>
+                </a>
+                <a href="#" class="nav-item admin-only" data-page="users">
+                    <i data-lucide="users"></i>
+                    <span>Users</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i data-lucide="user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p id="user-name" class="user-name">Loading...</p>
+                        <p id="user-role" class="user-role">Loading...</p>
+                    </div>
+                </div>
+                <button id="logout-btn" class="btn btn-ghost btn-sm">
+                    <i data-lucide="log-out"></i>
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main id="main-content" class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page-content active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Rice shop analytics and overview</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-blue">
+                            <i data-lucide="dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-sales">$0.00</h3>
+                            <p>Total Sales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon bg-green">
+                            <i data-lucide="shopping-cart"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-transactions">0</h3>
+                            <p>Transactions</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon bg-yellow">
+                            <i data-lucide="coffee"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-products">0</h3>
+                            <p>Products</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon bg-purple">
+                            <i data-lucide="users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="total-users">0</h3>
+                            <p>Active Users</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Sales Overview</h3>
+                        <canvas id="sales-chart"></canvas>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3>Top Products</h3>
+                        <canvas id="products-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Page -->
+            <div id="products-page" class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1>Product Management</h1>
+                        <p>Manage rice shop inventory</p>
+                    </div>
+                    <button id="add-product-btn" class="btn btn-primary">
+                        <i data-lucide="plus"></i>
+                        Add Product
+                    </button>
+                </div>
+                
+                <div class="filters-card">
+                    <div class="filters-row">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="product-search" placeholder="Search products...">
+                        </div>
+                        <select id="category-filter">
+                            <option value="all">All Categories</option>
+                            <option value="kiloan">Kiloan</option>
+                            <option value="karungan">Karungan</option>
+                            <option value="liter">Liter</option>
+                        </select>
+                        <select id="stock-filter">
+                            <option value="all">All Stock Levels</option>
+                            <option value="in-stock">In Stock</option>
+                            <option value="low-stock">Low Stock</option>
+                            <option value="out-of-stock">Out of Stock</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="table-card">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table-body">
+                            <!-- Products will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Transactions Page -->
+            <div id="transactions-page" class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1>Transaction Management</h1>
+                        <p>View and manage all transactions</p>
+                    </div>
+                </div>
+                
+                <div class="filters-card">
+                    <div class="filters-row">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="transaction-search" placeholder="Search transactions...">
+                        </div>
+                        <select id="date-filter">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                        <select id="payment-filter">
+                            <option value="all">All Payment Methods</option>
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="digital">Digital Payment</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="transactions-list" class="transactions-list">
+                    <!-- Transactions will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Users Page -->
+            <div id="users-page" class="page-content admin-only">
+                <div class="page-header">
+                    <div>
+                        <h1>User Management</h1>
+                        <p>Manage staff accounts and permissions</p>
+                    </div>
+                    <button id="add-user-btn" class="btn btn-primary">
+                        <i data-lucide="plus"></i>
+                        Add User
+                    </button>
+                </div>
+                
+                <div class="filters-card">
+                    <div class="filters-row">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="user-search" placeholder="Search users...">
+                        </div>
+                        <select id="role-filter">
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="cashier">Cashier</option>
+                        </select>
+                        <select id="status-filter">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="users-list" class="users-list">
+                    <!-- Users will be inserted here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for Add/Edit Product -->
+    <div id="product-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="product-modal-title">Add Product</h3>
+                <button class="modal-close" id="close-product-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <form id="product-form" class="modal-form">
+                <div class="form-group">
+                    <label for="product-name">Product Name</label>
+                    <input type="text" id="product-name" name="name" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-category">Category</label>
+                        <select id="product-category" name="category" required>
+                            <option value="kiloan">Kiloan</option>
+                            <option value="karungan">Karungan</option>
+                            <option value="liter">Liter</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-unit">Unit</label>
+                        <input type="text" id="product-unit" name="unit" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-price">Price ($)</label>
+                        <input type="number" id="product-price" name="price" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-stock">Stock</label>
+                        <input type="number" id="product-stock" name="stock" min="0" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="product-description">Description</label>
+                    <textarea id="product-description" name="description" rows="3"></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-product">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-product">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit User -->
+    <div id="user-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="user-modal-title">Add User</h3>
+                <button class="modal-close" id="close-user-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <form id="user-form" class="modal-form">
+                <div class="form-group">
+                    <label for="user-name">Full Name</label>
+                    <input type="text" id="user-name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="user-email">Email Address</label>
+                    <input type="email" id="user-email" name="email" required>
+                </div>
+                
+                <div class="form-group" id="password-group">
+                    <label for="user-password">Password</label>
+                    <input type="password" id="user-password" name="password" minlength="6">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="user-role">Role</label>
+                        <select id="user-role" name="role" required>
+                            <option value="cashier">Cashier</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="user-status">Status</label>
+                        <select id="user-status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-user">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-user">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transaction Detail Modal -->
+    <div id="transaction-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Transaction Details</h3>
+                <button class="modal-close" id="close-transaction-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div id="transaction-detail-content" class="transaction-detail">
+                <!-- Transaction details will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/products.js"></script>
+    <script src="js/transactions.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

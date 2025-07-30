@@ -1,0 +1,91 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user role from Firestore
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function getUserStatus() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status;
+    }
+    
+    function isUserActive() {
+      return getUserStatus() == 'active';
+    }
+    
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+    
+    function isManager() {
+      return getUserRole() == 'manager';
+    }
+    
+    function isAdminOrManager() {
+      return isAdmin() || isManager();
+    }
+    
+    // Product images
+    match /products/{productId}/{allPaths=**} {
+      // Allow read access to all authenticated active users
+      allow read: if isAuthenticated() && isUserActive();
+      
+      // Only admins and managers can upload/update product images
+      allow write: if isAuthenticated() && isAdminOrManager() && isUserActive() &&
+                      request.resource.size < 5 * 1024 * 1024 && // Max 5MB
+                      request.resource.contentType.matches('image/.*');
+      
+      // Only admins can delete product images
+      allow delete: if isAuthenticated() && isAdmin() && isUserActive();
+    }
+    
+    // User avatars
+    match /users/{userId}/avatar/{allPaths=**} {
+      // Users can read their own avatar, admins/managers can read all avatars
+      allow read: if isAuthenticated() && isUserActive() &&
+                     (request.auth.uid == userId || isAdminOrManager());
+      
+      // Users can upload their own avatar, admins can upload any avatar
+      allow write: if isAuthenticated() && isUserActive() &&
+                      (request.auth.uid == userId || isAdmin()) &&
+                      request.resource.size < 2 * 1024 * 1024 && // Max 2MB
+                      request.resource.contentType.matches('image/.*');
+      
+      // Users can delete their own avatar, admins can delete any avatar
+      allow delete: if isAuthenticated() && isUserActive() &&
+                       (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Transaction receipts/documents
+    match /transactions/{transactionId}/{allPaths=**} {
+      // All authenticated active users can read transaction documents
+      allow read: if isAuthenticated() && isUserActive();
+      
+      // Only authenticated active users can create transaction documents
+      allow create: if isAuthenticated() && isUserActive() &&
+                       request.resource.size < 10 * 1024 * 1024; // Max 10MB
+      
+      // Only admins and managers can update transaction documents
+      allow update: if isAuthenticated() && isAdminOrManager() && isUserActive();
+      
+      // Only admins can delete transaction documents
+      allow delete: if isAuthenticated() && isAdmin() && isUserActive();
+    }
+    
+    // System backups (admin only)
+    match /backups/{allPaths=**} {
+      allow read, write: if isAuthenticated() && isAdmin() && isUserActive();
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
